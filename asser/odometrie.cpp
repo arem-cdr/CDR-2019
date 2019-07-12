@@ -6,8 +6,9 @@
 
 double x_actuel;
 double y_actuel;
-double angle; // angle du robot
+double angle; // angle du robot dans le repère absolue
 
+// redefinition de variable globale défini autre part dans le projet.
 extern Serial pc;
 extern double X_init = 0.0;
 extern double Y_init = 0.0;
@@ -15,7 +16,8 @@ extern double ANGLE_init = 0.0;
 
 long int nbr_tick_D_prec;
 long int nbr_tick_G_prec;
-    
+   
+// initialisation des variables de l'odométrie, il faut appeler la fonction quand le robot avant que le robot se déplace.
 void init_odometrie()
 {
 	x_actuel = X_init;
@@ -80,7 +82,7 @@ void actualise_position()
         y_actuel +=dep_roue_D * sin(angle);
     }
         
-    //printf("tick d : %d, tick g : %d, x : %lf, y : %lf. angle : %lf\n", nbr_tick_D, nbr_tick_G, x_actuel, y_actuel, angle*180/PI);
+    //printf("tick d : %d, tick g : %d, x : %lf, y : %lf. angle : %lf\n", nbr_tick_D, nbr_tick_G, x_actuel, y_actuel, angle*180/PI);//debug
     
 } 
 
@@ -104,8 +106,7 @@ double get_angle()
 void setEmplacementDepartViolet()
 {
 	X_init = 22500.0; //22500
-	Y_init = 43500.0; // 45000
-	//ANGLE_init = 0.0; 
+	Y_init = 43500.0; // 45000 
 	ANGLE_init = -90.0*PI/180.0;
 }
 

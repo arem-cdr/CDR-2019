@@ -114,6 +114,8 @@ deplacement::deplacement(){
         c_D[k]=0;
         c_G[k]=0;
     }
+
+	// tableau de consigne de test pour l'asservissement en vitesse
     consigne_tab[0][0]=0;
     consigne_tab[0][1]=0;
     
@@ -215,7 +217,7 @@ void deplacement::commande_vitesse(float vitesse_G,float vitesse_D){ //fonction 
         VD_int+=1;
     }
     //printf("vitesseG : %f, vitesseD : %f, %d, %d", VG_f, VD_f, VG_int, VD_int);
-    set_PWM_moteur_G(VG_int);//le branchements des moteurs est à vérifier ( fonctionne dans l'état actuel du robots
+    set_PWM_moteur_G(VG_int);//le branchements des moteurs est à vérifier 
     set_PWM_moteur_D(VD_int);//
 }
 void deplacement::vitesse_nulle_G(int zero){
@@ -230,8 +232,7 @@ void deplacement::vitesse_nulle_D(int zero){
 }
 void deplacement::marche_arriere(int distance)
 {
-    somme_y=0;
-    // le robot avance en ligne droite sur une distance donnée, à la vitesse voulue (entre 0 et 900)
+	// on se place dans un repère local
     motors_on();
     actualise_position();
     double x_ini = get_x_actuel();
@@ -249,23 +250,20 @@ void deplacement::marche_arriere(int distance)
     
     double x_local = x_actuel*cos(angle_vise) + y_actuel*sin(angle_vise)-x_local_ini;
     double y_local = y_actuel*cos(angle_vise) - x_actuel*sin(angle_vise)-y_local_ini;
-    
-    //long int y_local_prec = y_local;
+
     float vitesse_G;
     float vitesse_D;
     
     angle = get_angle();
-    float Kip=0;
     float Kpp= 0.05 ;
     float Kdp= 10;
     while (distance-x_local<0){
              if(detectionUltrasons)
             {
                 detectionUltrasons = false;
-                //writeCapteurs();
                 LectureI2CCarteCapteur(*this);
             }
-            vitesse_G = (distance-x_local)/70;
+            vitesse_G = (distance-x_local)/70; // pente de décellération 
             vitesse_D = vitesse_G;
             if(vitesse_G >400){
                 vitesse_G=400;
@@ -278,43 +276,37 @@ void deplacement::marche_arriere(int distance)
             
             angle = get_angle();
             
-            vitesse_G = vitesse_G  - Kpp*y_local + Kdp * diff_angle(angle_vise_deg, angle) + Kip*somme_y;
-            vitesse_D = vitesse_D  + Kpp*y_local - Kdp * diff_angle(angle_vise_deg, angle) - Kip*somme_y;
-            //consigne_D = vitesse_D;
-            //consigne_G = vitesse_G;
+            vitesse_G = vitesse_G  - Kpp*y_local + Kdp * diff_angle(angle_vise_deg, angle);
+            vitesse_D = vitesse_D  + Kpp*y_local - Kdp * diff_angle(angle_vise_deg, angle);
+			// On arrête le robot sur les capteurs détecte qqchose
             if (stopCapteurs == true)
             {
                 vitesse_nulle_D(0);
                 vitesse_nulle_G(0);
             }
+			//sinon le robot roule
             else
             {
                 commande_vitesse(vitesse_G,vitesse_D);
             }
-            actualise_position();
+
+            actualise_position(); // on recalcule sa position à partir des ticks de codeuses lue entre temps 
             x_actuel = get_x_actuel();
             y_actuel = get_y_actuel();
-            somme_y+=y_actuel;
-            //y_local_prec = y_local;
+			//changement de repère
             x_local = x_actuel*cos(angle_vise) + y_actuel*sin(angle_vise)-x_local_ini;
             y_local = y_actuel*cos(angle_vise) - x_actuel*sin(angle_vise)-y_local_ini;
-            if (compteur_asser==150){
-                compteur_asser=0;
-                //printf("%lf\n",get_y_actuel());
-            }
-            compteur_asser++;
-            //printf("   VG : %f  VD : %f ; x_local : %lf, y_local : %lf, angle_vise : %f\n",vitesse_G,vitesse_D, x_local,y_local, angle);// sqrt((x_ini - x_actuel)*(x_ini - x_actuel) + (y_ini - y_actuel)*(y_ini - y_actuel)), y_actuel, (x_actuel - x_ini)*(x_actuel - x_ini) + (y_actuel - y_ini)*(y_actuel - y_ini));
-    }
-    //printf("x : %d, y : %d, angle : %f\n", get_x_actuel(), get_y_actuel(),get_angle());
+            
+            //printf("   VG : %f  VD : %f ; x_local : %lf, y_local : %lf, angle_vise : %f\n",vitesse_G,vitesse_D, x_local,y_local, angle);// debug
+	}
+    
     rotation_abs(angle_vise_deg);
-    //printf("x : %d, y : %d, angle : %f\n", get_x_actuel(), get_y_actuel(),get_angle());
+    //on recorige l'angle pour après la ligne droite
 }
 
 
-void deplacement::ligne_droite_basique(long int distance)
+void deplacement::ligne_droite_basique(long int distance) // même principe que la marche arrière
 {
-    somme_y=0;
-    // le robot avance en ligne droite sur une distance donnée, à la vitesse voulue (entre 0 et 900)
     motors_on();
     actualise_position();
     double x_ini = get_x_actuel();
@@ -338,7 +330,6 @@ void deplacement::ligne_droite_basique(long int distance)
     float vitesse_D;
     
     angle = get_angle();
-    float Kip=0;
     float Kpp= 0.05 ;
     float Kdp= 10;
     while (distance-x_local>0){
@@ -347,7 +338,6 @@ void deplacement::ligne_droite_basique(long int distance)
             {
                 detectionUltrasons = false;
                 evitementValider = false;
-                //writeCapteurs();
                 LectureI2CCarteCapteur(*this);
             }
             vitesse_G = (distance-x_local)/70;
@@ -363,48 +353,25 @@ void deplacement::ligne_droite_basique(long int distance)
             
             angle = get_angle();
             
-            vitesse_G = vitesse_G  + Kpp*y_local + Kdp * diff_angle(angle_vise_deg, angle) + Kip*somme_y;
-            vitesse_D = vitesse_D  - Kpp*y_local - Kdp * diff_angle(angle_vise_deg, angle) - Kip*somme_y;
-            //consigne_D = vitesse_D;
-            //consigne_G = vitesse_G;
-            if (typeEvitement == ARRET)
-            {
-                if(stopCapteurs == true)
-                {
-                    evitementValider = true;
-                    vitesse_nulle_D(0);
-                    vitesse_nulle_G(0);
-                }   
-                else
-                {
-                    commande_vitesse(vitesse_G,vitesse_D);
-                }   
-            }  
+            vitesse_G = vitesse_G + Kpp*y_local + Kdp * diff_angle(angle_vise_deg, angle);
+			vitesse_D = vitesse_D - Kpp * y_local - Kdp * diff_angle(angle_vise_deg, angle);
+			commande_vitesse(vitesse_G,vitesse_D);   
+          
             actualise_position();
             x_actuel = get_x_actuel();
             y_actuel = get_y_actuel();
-            commande_vitesse(vitesse_G,vitesse_D);
-            somme_y+=y_actuel;
-            //y_local_prec = y_local;
+            
             x_local = x_actuel*cos(angle_vise) + y_actuel*sin(angle_vise)-x_local_ini;
             y_local = y_actuel*cos(angle_vise) - x_actuel*sin(angle_vise)-y_local_ini;
-            if (compteur_asser==150){
-                compteur_asser=0;
-                //printf("%lf\n",get_y_actuel());
-            }
-            compteur_asser++;
-            //printf("   VG : %f  VD : %f ; x_local : %d, y_local : %d, angle_vise : %f",vitesse_G,vitesse_D, x_local,y_local, angle_vise_deg);// sqrt((x_ini - x_actuel)*(x_ini - x_actuel) + (y_ini - y_actuel)*(y_ini - y_actuel)), y_actuel, (x_actuel - x_ini)*(x_actuel - x_ini) + (y_actuel - y_ini)*(y_actuel - y_ini));
+           
+            //printf("   VG : %f  VD : %f ; x_local : %d, y_local : %d, angle_vise : %f",vitesse_G,vitesse_D, x_local,y_local, angle_vise_deg);// debug
     }
-    //printf("x : %d, y : %d, angle : %f\n", get_x_actuel(), get_y_actuel(),get_angle());
     rotation_abs(angle_vise_deg);
-    //printf("x : %d, y : %d, angle : %f\n", get_x_actuel(), get_y_actuel(),get_angle());
 }
 
 
 void deplacement::ligne_droite(long int distance, double x, double y, double cap)
 {
-    somme_y=0;
-    // le robot avance en ligne droite sur une distance donnée, à la vitesse voulue (entre 0 et 900)
     motors_on();
     actualise_position();
     double x_ini = get_x_actuel();
@@ -423,12 +390,10 @@ void deplacement::ligne_droite(long int distance, double x, double y, double cap
     double x_local = x_actuel*cos(angle_vise) + y_actuel*sin(angle_vise)-x_local_ini;
     double y_local = y_actuel*cos(angle_vise) - x_actuel*sin(angle_vise)-y_local_ini;
     
-    //long int y_local_prec = y_local;
     float vitesse_G;
     float vitesse_D;
     
     angle = get_angle();
-    float Kip=0;
     float Kpp= 0.05 ;
     float Kdp= 10;
     while (distance-x_local>0){
@@ -437,7 +402,6 @@ void deplacement::ligne_droite(long int distance, double x, double y, double cap
             {
                 detectionUltrasons = false;
                 evitementValider = false;
-                //writeCapteurs();
                 LectureI2CCarteCapteur(*this);
             }
             vitesse_G = (distance-x_local)/70;
@@ -455,8 +419,6 @@ void deplacement::ligne_droite(long int distance, double x, double y, double cap
             
             vitesse_G = vitesse_G  + Kpp*y_local + Kdp * diff_angle(angle_vise_deg, angle) + Kip*somme_y;
             vitesse_D = vitesse_D  - Kpp*y_local - Kdp * diff_angle(angle_vise_deg, angle) - Kip*somme_y;
-            //consigne_D = vitesse_D;
-            //consigne_G = vitesse_G;
             if (typeEvitement == ARRET)
             {
                 if(stopCapteurs == true)
@@ -497,20 +459,13 @@ void deplacement::ligne_droite(long int distance, double x, double y, double cap
             actualise_position();
             x_actuel = get_x_actuel();
             y_actuel = get_y_actuel();
-            somme_y+=y_actuel;
-            //y_local_prec = y_local;
+            
             x_local = x_actuel*cos(angle_vise) + y_actuel*sin(angle_vise)-x_local_ini;
             y_local = y_actuel*cos(angle_vise) - x_actuel*sin(angle_vise)-y_local_ini;
-            if (compteur_asser==150){
-                compteur_asser=0;
-                //printf("%lf\n",get_y_actuel());
-            }
-            compteur_asser++;
-            //printf("   VG : %f  VD : %f ; x_local : %d, y_local : %d, angle_vise : %f",vitesse_G,vitesse_D, x_local,y_local, angle_vise_deg);// sqrt((x_ini - x_actuel)*(x_ini - x_actuel) + (y_ini - y_actuel)*(y_ini - y_actuel)), y_actuel, (x_actuel - x_ini)*(x_actuel - x_ini) + (y_actuel - y_ini)*(y_actuel - y_ini));
-    }
-    //printf("x : %d, y : %d, angle : %f\n", get_x_actuel(), get_y_actuel(),get_angle());
+            
+            //printf("   VG : %f  VD : %f ; x_local : %d, y_local : %d, angle_vise : %f",vitesse_G,vitesse_D, x_local,y_local, angle_vise_deg);// debug
+	}
     rotation_abs(angle_vise_deg);
-    //printf("x : %d, y : %d, angle : %f\n", get_x_actuel(), get_y_actuel(),get_angle());
 }
 
 void deplacement::rotation_rel(double angle_vise)
@@ -524,15 +479,11 @@ void deplacement::rotation_rel(double angle_vise)
     borne_angle_d(angle_vise);
     if (diff_angle(angle,angle_vise)<=0){
         sens = -1;
-        //printf("negatif\n");
     }
     else{
         sens = 1;
-        
-        //printf("positif\n");
     }
-    //printf("diff : %lf ",diff_angle(angle,angle_vise));
-    while ((sens*diff_angle(angle,angle_vise)>0) || abs(diff_angle(angle,angle_vise))>100)
+    while ((sens*diff_angle(angle,angle_vise)>0) || abs(diff_angle(angle,angle_vise))>100) //un moyen d'éviter qu'il ne parte du mauvais côté
     {
         actualise_position();
         angle = get_angle();
@@ -544,17 +495,8 @@ void deplacement::rotation_rel(double angle_vise)
             vitesse = -90;
         }
         commande_vitesse(-vitesse,vitesse);
-        if (compteur_asser==150){
-                compteur_asser=0;
-                //printf("%lf\n",get_y_actuel());
-            }
-        compteur_asser++;
-        //printf("vitesse : %lf ", vitesse);
+        //printf("vitesse : %lf ", vitesse);//debug
     }
-    //printf("\ndiff2 : %lf ",diff_angle(angle,angle_vise));
-    //printf(" x et y recu : %lf, %ld. distance parcourue : %ld ", sqrt((x_ini - x_actuel)*(x_ini - x_actuel) + (y_ini - y_actuel)*(y_ini - y_actuel)), y_actuel, (x_actuel - x_ini)*(x_actuel - x_ini) + (y_actuel - y_ini)*(y_actuel - y_ini));
-    //consigne_D = 0;
-    //consigne_G = 0;
     vitesse_nulle_G(0);
     vitesse_nulle_D(0);
     wait(0.1);
@@ -565,12 +507,11 @@ void deplacement::rotation_rel(double angle_vise)
 void deplacement::rotation_abs(double angle_vise)
 {
     actualise_position();
-    //printf("bite");
     double angle_rel = borne_angle_d(angle_vise-get_angle());
     rotation_rel(angle_rel);
 }
 
-void deplacement::asservissement(){
+void deplacement::asservissement(){ //asservissement en vitesse
     long int tick_D = get_nbr_tick_D();
     long int tick_G = get_nbr_tick_G();
     
@@ -639,7 +580,6 @@ void deplacement::asservissement(){
     }
     c_D[dix_ms]=consigne_D;
     c_G[dix_ms]=consigne_G;
-    //printf("%d\n",c[i]);
     tab_cmd_D[dix_ms] = cmd_D;
     tab_cmd_G[dix_ms] = cmd_G;
     vtab_D[dix_ms] = vitesse_codeuse_D;
@@ -652,7 +592,8 @@ void deplacement::asservissement(){
     //printf("oui");
 }
 
-void deplacement::printftab(){
+
+void deplacement::printftab(){ // fonction de debug
 
     for (int j =0;j<TAILLE_TAB;j++){
         if(j==500)
@@ -670,7 +611,7 @@ void deplacement::printftab(){
     }*/
 }
 
-void deplacement::test(){
+void deplacement::test(){ //test de la fonction d'asser
     Timer t;
     t.start();
     for (int i =0;i<5 ;i++){
@@ -700,7 +641,7 @@ void deplacement::poussette(float temps){
     motors_stop();
 }
 
-void deplacement::initialisation(){
+void deplacement::initialisation(){ // initialisation du robot
     init_odometrie();
     init_hardware();
     srand(time(NULL));
@@ -708,7 +649,7 @@ void deplacement::initialisation(){
 }
 
 
-void deplacement::arc(Coordonnees p1, Coordonnees p2, int sens){
+void deplacement::arc(Coordonnees p1, Coordonnees p2, int sens){ // non commenté, permet de suivre des arcs de cercle.
     actualise_position();
     float vitesse_G;
     float vitesse_D;
@@ -992,7 +933,7 @@ void deplacement::arc(Coordonnees p1, Coordonnees p2, int sens){
 }
 
 
-int deplacement::cercle(Coordonnees a,Coordonnees b, Coordonnees c){
+int deplacement::cercle(Coordonnees a,Coordonnees b, Coordonnees c){ // trouve le cercle entre 3 points
     double ax2 = pow(a.x,2);
     double ay2 = pow(a.y,2);
     double bx2 = pow(b.x,2);
@@ -1052,7 +993,7 @@ int deplacement::cercle(Coordonnees a,Coordonnees b, Coordonnees c){
     
     return 0;
 }
-double deplacement::int_ext_cercle(double x, double y){
+double deplacement::int_ext_cercle(double x, double y){ // déterminer si un point est à l'intérieur ou à l'exterieur d'un cercle
     double xc= point[0];
     double yc= point[1];
     double Rc= point[2];
@@ -1061,7 +1002,7 @@ double deplacement::int_ext_cercle(double x, double y){
     
 }
 
-void deplacement::va_au_point(double x,double y, double cap){
+void deplacement::va_au_point(double x,double y, double cap){  // permet d'aller à n'importe quel point du terrain
     actualise_position();
     double angle = get_angle();
     double x_robot = get_x_actuel();
@@ -1070,7 +1011,6 @@ void deplacement::va_au_point(double x,double y, double cap){
     double y_projete = 10000.0*sin(angle*3.1416/180.0)+y_robot;
     printf("angle ::: %lf\n",recup_angle_entre_trois_points_213(x_robot,y_robot,x,y,x_projete,y_projete));
     rotation_rel(recup_angle_entre_trois_points_213(x_robot,y_robot,x,y,x_projete,y_projete));
-    //printf("oui\n");
     actualise_position();
     angle = get_angle();
     x_robot = get_x_actuel();

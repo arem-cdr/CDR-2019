@@ -10,7 +10,7 @@
 bool moteurs_arret = false;
 bool init_shield = false;
 
-XNucleoIHM02A1 *x_nucleo_ihm02a1; //Création d'une entité pour la carte de contôle des pas à pas
+XNucleoIHM02A1 *x_nucleo_ihm02a1; //Création d'une entité pour la carte de contôle des pas à pas // Les valeurs à rentrer dépendent de l'alimentation du moteur.
 L6470_init_t init[L6470DAISYCHAINSIZE] = {
 /* First Motor. */
     {
@@ -72,7 +72,7 @@ L6470_init_t init[L6470DAISYCHAINSIZE] = {
 L6470 **motors; //Instance des moteurs
 
 DigitalOut led(LED2);
-//Serial pc(USBTX, USBRX); // tx, rx
+//Serial pc(USBTX, USBRX); // tx, rx //la liaison serie pc-robot fut redéfini autre part.
 DevSPI dev_spi(D11, D12, D3);
 
 
@@ -98,12 +98,12 @@ void init_hardware()
         motors = x_nucleo_ihm02a1->get_components();
         init_shield = true ;
         
-        ENCAL.mode(PullUp); //Initialisation des codeuses
+        ENCAL.mode(PullUp); //Initialisation des codeuses, on active la resistance de pull
         ENCAJ.mode(PullUp);
         ENCBL.mode(PullUp);
         ENCBJ.mode(PullUp);
     
-        ENCAL.rise(&updateEncoderA);
+        ENCAL.rise(&updateEncoderA); // on lit les tics de codeuses sur chaque changement de front, et on appelle les fonctions de comptage de tics.
         ENCAL.fall(&updateEncoderA);
         ENCAJ.rise(&updateEncoderA);
         ENCAJ.fall(&updateEncoderA);
@@ -118,7 +118,7 @@ void init_hardware()
 
 }
 
-void set_PWM_moteur_D(int PWM)
+void set_PWM_moteur_D(int PWM) // Pour faire tourner les moteurs, ça vient du hello world du shield.
 {
     if (!moteurs_arret) {
         if (PWM > PWM_MAX) {
@@ -160,7 +160,7 @@ void set_PWM_moteur_G(int PWM)
 }
 
 
-long int get_nbr_tick_D()
+long int get_nbr_tick_D() 
 {
     return encoderValueA;
 }
@@ -170,13 +170,13 @@ long int get_nbr_tick_G()
     return encoderValueB;
 }
 
-void attente_synchro()
+void attente_synchro() //non utilisé
 {
     //structute du temps d'attente de l'asservissement 10ms
     wait(0.010);
 }
 
-void motors_stop()
+void motors_stop() //coupe les moteurs et les rends libres.
 {
     moteurs_arret=1;
     motors[0]->prepare_hard_hiz(); //mode haute impédence pour pouvoir déplacer le robot à la main
@@ -184,7 +184,7 @@ void motors_stop()
     x_nucleo_ihm02a1->perform_prepared_actions();
 }
 
-void motors_on()
+void motors_on() // il faut activer les moteurs pour qu'il puisse recevoir des commandes PWM. 
 {
     moteurs_arret=0;
 }
@@ -218,6 +218,7 @@ void set_all_led()
 
 }
 
+//Il s'agit des fonctions appelées sur interruptions pour compter les ticks des codeuses, merci Internet
 
 volatile int lastEncodedA = 0;
 long lastencoderValueA = 0;
@@ -258,7 +259,7 @@ void updateEncoderB()
     lastEncodedB = encodedB; //store this value for next time
 }
 
-
+// permet de lire les tics de codeuses sur la liaison série.
 
 void debugEncoder()
 {
