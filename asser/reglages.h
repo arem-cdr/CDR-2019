@@ -1,11 +1,11 @@
-//position initiale du robot
+//position initiale du robot // la position fut redefini comme variable globale afin de la modifier via l'écran
 #define X_INIT 0
 #define Y_INIT 0
 #define THETA_INIT 0
 
 //propre a chaque robot
-#define ECART_ROUE 24870 // a augmenter si l'angle reel est plus grand que l'angle vise //31190
-#define DISTANCE_PAR_TICK_D 8.43 // si le robot va trop loin, à augmenter//8.5
+#define ECART_ROUE 24870 // a augmenter si l'angle reel est plus grand que l'angle vise
+#define DISTANCE_PAR_TICK_D 8.43 // si le robot va trop loin, à augmenter
 #define DISTANCE_PAR_TICK_G 8.43
 
 
