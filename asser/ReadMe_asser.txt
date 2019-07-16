@@ -1,9 +1,9 @@
 ReadMe_asser
 
-Le principe de déplacement du robot utilisé lors de la Coupe de France de Robotique 2019 est d'utilisé de l'odométrie pour faire du suivi de trajectoire.
+Le principe de déplacement du robot utilisé lors de la Coupe de France de Robotique 2019 est d'utilisé l'odométrie pour faire du suivi de trajectoire.
 
-Pour cela nous disposions de 2 encodeurs incrémentals branché dans l'alignement des roues moteurs pour suivre les déplacements du robot.
-L'idée général est donc de récupérer les tics des encodeurs sur intéruption pour actualiser la position du robot au sein du programme.
+Pour cela nous disposions de 2 encodeurs incrémentaux branchés dans l'alignement des roues moteurs pour suivre les déplacements du robot.
+L'idée générale est donc de récupérer les tics des encodeurs sur interruption pour actualiser la position du robot au sein du programme.
 Ainsi grâce à cette position, nous pouvons faire du suivi de trajectoire : 
 	-ligne_droite
 	-rotation
